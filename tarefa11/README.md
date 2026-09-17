@@ -46,13 +46,13 @@ onde `r = ν·Δt/Δx²`. Condição de estabilidade em 2D: **`r ≤ 0.25`**.
 
 ## Validação
 
+Ambos os testes rodam 2000 passos (t = 200) na versão sequencial.
+
 ### Teste A — Campo uniforme
 
-Interior inicializado com `u = 1,0`. Bordas fixas em 0 (Dirichlet) drenam energia da periferia, mas o **quarto central** da grade deve permanecer exatamente 1,0 ao longo de todo o tempo:
+Interior inicializado com `u = 1,0`. Bordas fixas em 0 (Dirichlet) drenam a periferia, mas o **quarto central** da grade deve permanecer exatamente 1,0 ao longo de todo o tempo:
 
 ```
-Energia inicial: 2.601e+05
-Energia final:   2.565e+05
 max|u − 1.0| no quarto central: 0.00e+00  ✓ estável
 ```
 
@@ -60,12 +60,16 @@ Nenhuma instabilidade artificial é introduzida pelo esquema numérico.
 
 ### Teste B — Perturbação gaussiana
 
-`u = 0` no início; gaussiana de amplitude 10 e σ = 20 células adicionada no centro. A energia deve decair suavemente conforme a perturbação se difunde:
+`u = 0` no início; gaussiana de amplitude 10 e σ₀ = 5 células no centro. Uma difusão correta tem assinatura analítica conhecida: o pico cai, a massa `Σu` se conserva (a perturbação não alcança as bordas) e a largura cresce segundo `σ(t) = √(σ₀² + 2νt)`.
 
 ```
-Energia inicial: 1.257e+05
-Energia final:   1.244e+05  ✓ decaiu por difusão + absorção nas bordas
+pico:     10.0000 →   3.8546   (deve cair)
+largura:   5.0000 →   8.0623   (analítico: 8.0623)  ✓
+massa Σu: 1.570796e+03 → 1.570796e+03               ✓ conservada
+mínimo final: 0.00e+00  (≥ 0 → difusão suave, sem oscilação)
 ```
+
+A largura medida bate com a solução analítica em quatro casas decimais — isso valida o esquema numérico, e não apenas a ausência de divergência. O mínimo não-negativo confirma que a difusão é suave, sem oscilações espúrias.
 
 A animação abaixo mostra a evolução da perturbação ao longo do tempo:
 
@@ -78,35 +82,45 @@ A animação abaixo mostra a evolução da perturbação ao longo do tempo:
 O stencil de 5 pontos é aplicado a cada célula interior a cada passo de tempo. A paralelização recai naturalmente sobre o loop espacial — cada linha (ou célula, com `collapse`) é independente das demais no mesmo passo:
 
 ```c
-/* schedule(static) — uma linha por iteração do loop externo */
-#pragma omp parallel for num_threads(4) schedule(static)
+/* schedule(runtime): a política vem de omp_set_schedule(), o que permite
+   comparar static/dynamic/guided com um único corpo de código. */
+#pragma omp parallel for schedule(runtime)
+for (int i = 1; i < NX-1; i++)
+    atualiza_linha(u, u_new, i);
+
+/* collapse(2) — itera sobre (NX-2)×(NY-2) células diretamente */
+#pragma omp parallel for schedule(runtime) collapse(2)
 for (int i = 1; i < NX-1; i++)
     for (int j = 1; j < NY-1; j++)
         u_new[i][j] = u[i][j] + R*(u[i+1][j] + u[i-1][j]
                                   + u[i][j+1] + u[i][j-1]
                                   - 4.0*u[i][j]);
+```
 
-/* collapse(2) — itera sobre (NX-2)×(NY-2) células diretamente */
-#pragma omp parallel for num_threads(4) schedule(static) collapse(2)
-for (int i = 1; i < NX-1; i++)
-    for (int j = 1; j < NY-1; j++)
-        u_new[i][j] = ...;
+Os dois grids usam **double buffering**: ao fim de cada passo os ponteiros `u` e `u_new` são trocados, em vez de copiar a grade. Uma versão anterior fazia `memcpy` de 2 MB por passo — trabalho serial do mesmo custo de banda que o próprio stencil, que por Amdahl limitava o speedup a ~1,5× com 4 threads.
+
+O número de threads vem de `OMP_NUM_THREADS`, sem `num_threads` fixo no código:
+
+```
+make && OMP_NUM_THREADS=4 ./fluid
 ```
 
 ---
 
 ## Resultados de desempenho
 
-Grade 512×512, 1000 passos de tempo, 4 threads:
+Grade 512×512, 1000 passos de tempo, 4 threads, mediana de 3 execuções:
 
 | Versão                 | Tempo (s) | Speedup |
 |------------------------|-----------|---------|
-| Sequencial             | 0,298     | 1,00    |
-| `static`               | 0,240     | 1,24    |
-| `static, chunk=NX/4`   | 0,187     | 1,59    |
-| `dynamic, chunk=16`    | 0,171     | 1,74    |
-| `guided`               | 0,165     | 1,81    |
-| `collapse(2)` + static | 0,174     | 1,71    |
+| Sequencial             | 0,226     | 1,00    |
+| `static`               | 0,110     | 2,05    |
+| `static, chunk=32`     | 0,080     | 2,82    |
+| `dynamic, chunk=16`    | 0,089     | 2,53    |
+| `guided`               | 0,076     | 2,96    |
+| `collapse(2)` + static | 0,117     | 1,93    |
+
+Entre execuções, os três schedules de granularidade fina (`static+chunk`, `dynamic`, `guided`) oscilam na faixa de **2,5× a 3,1×** e trocam de posição entre si — a diferença entre eles está dentro do ruído de medição. O que se mantém consistente é a separação em dois grupos: eles ficam acima, `static` puro e `collapse(2)` ficam abaixo.
 
 ---
 
@@ -114,32 +128,32 @@ Grade 512×512, 1000 passos de tempo, 4 threads:
 
 ### `schedule(static)`
 
-Divide as 510 linhas do loop externo em 4 blocos contíguos de tamanho igual (≈127 linhas por thread). O acesso à memória é sequencial (row-major), o que é ideal para cache. Sem overhead de coordenação em runtime. Speedup de apenas **1,24×** neste caso — o compilador com `-O2` otimiza o loop sequencial agressivamente, deixando pouco ganho para a paralelização básica.
+Divide as 510 linhas do loop externo em 4 blocos contíguos iguais (≈127 linhas por thread). O acesso é sequencial em row-major, ideal para cache, e não há coordenação em runtime. Ainda assim fica em **~2,0×**: o kernel é *memory-bound* (lê 5 valores e escreve 1 por célula, com pouquíssima aritmética), então o gargalo é a banda de memória, não a CPU — quatro threads não entregam 4× porque disputam o mesmo controlador.
 
-### `schedule(static, chunk=NX/4)`
+### `schedule(static, chunk=32)`
 
-Chunk explícito de 128 linhas, equivalente ao bloco do `static` padrão. O speedup de **1,59×** melhor que o `static` sem chunk sugere que a granularidade explícita permite ao runtime alocar o trabalho de forma ligeiramente diferente, reduzindo overhead de sincronização entre passos.
+Chunks de 32 linhas distribuídos ciclicamente (round-robin) entre as threads. O intercalamento faz com que as threads percorram regiões mais próximas da memória ao mesmo tempo, melhorando o reúso de cache compartilhado e o *prefetch*: **~2,8×**.
 
 ### `schedule(dynamic, chunk=16)`
 
-Chunks de 16 linhas atribuídos dinamicamente conforme threads ficam livres. Para um stencil de custo uniforme por linha, o overhead de coordenação seria prejudicial — mas na prática o chunk de 16 equilibra bem o overhead com o balanceamento fino, resultando em **1,74×**.
+Chunks de 16 linhas atribuídos conforme as threads ficam livres. Para um stencil de custo uniforme por linha, o balanceamento dinâmico não tem nada a corrigir e o overhead de coordenação seria puro custo — o ganho observado (**~2,5×**) vem do mesmo efeito de localidade do chunk pequeno, não do balanceamento.
 
 ### `schedule(guided)`
 
-Inicia com chunks grandes e vai reduzindo até um mínimo. Garante que threads terminando cedo recebem trabalho proporcional ao que resta, minimizando tempo ocioso no final do loop. Melhor resultado: **1,81×** — o decréscimo natural dos chunks se adapta bem ao comportamento de memória do stencil.
+Começa com chunks grandes e vai reduzindo. Atinge **~3,0×**, mas pelo mesmo motivo dos anteriores: o efeito é de granularidade/cache, não de balanceamento de carga. Numa carga genuinamente irregular a vantagem do `guided` seria estrutural; aqui ele empata com os demais chunks finos dentro do ruído.
 
 ### `collapse(2)` + `static`
 
-Colapsa os dois loops em um único espaço de `510 × 510 = 260.100` iterações, distribuídas estaticamente. Permite distribuição mais fina, mas o overhead de calcular índices 2D a partir do índice linear colapsado e a menor localidade de cache por thread reduzem o ganho para **1,71×** — abaixo do `guided`.
+Colapsa os dois loops num espaço único de `510 × 510 = 260.100` iterações. Fica em **~1,9×**, o pior resultado paralelo: o loop interno deixa de ser um laço contíguo simples e passa a exigir a reconstrução dos índices `i` e `j` a partir do índice linear, o que atrapalha a vetorização e o prefetch. Com 510 linhas para 4 threads já há paralelismo de sobra no loop externo — `collapse` não acrescenta nada e só cobra o custo.
 
 ### Conclusão
 
-| Cláusula              | Speedup | Quando usar                                          |
-|-----------------------|---------|------------------------------------------------------|
-| `static`              | 1,24×   | Carga uniforme, loops muito rápidos                  |
-| `static, chunk`       | 1,59×   | Carga uniforme, chunk ajustado à topologia de cache  |
-| `dynamic`             | 1,74×   | Carga moderadamente variável                         |
-| `guided`              | 1,81×   | Melhor para este stencil — chunk decrescente         |
-| `collapse(2)+static`  | 1,71×   | Quando NX é pequeno e há poucas linhas por thread    |
+| Cláusula              | Speedup | Quando usar                                            |
+|-----------------------|---------|--------------------------------------------------------|
+| `static`              | ~2,0×   | Carga uniforme; menor overhead, mas chunks grandes      |
+| `static, chunk`       | ~2,8×   | Carga uniforme, chunk ajustado à topologia de cache     |
+| `dynamic`             | ~2,5×   | Carga variável — aqui o ganho não vem do balanceamento  |
+| `guided`              | ~3,0×   | Carga variável com cauda longa de iterações             |
+| `collapse(2)+static`  | ~1,9×   | Quando o loop externo tem poucas iterações para as threads |
 
-Para stencils 2D com carga uniforme e grade grande, `guided` e `dynamic` superam `static` simples porque o kernel sequencial já é muito otimizado e o ganho paralelo vem principalmente de melhor utilização de cache via scheduling fino. `collapse(2)` é mais útil quando o loop externo tem poucas iterações em relação ao número de threads.
+A lição do experimento é que **a carga já é perfeitamente uniforme**: cada linha custa o mesmo, então `dynamic` e `guided` não têm desbalanceamento para corrigir e o que os separa do `static` puro é o tamanho do chunk, não a política. O teto de ~3× com 4 threads é da banda de memória, não do escalonamento. `collapse(2)` só compensa quando o loop externo tem menos iterações que threads disponíveis — o oposto do caso aqui.
