@@ -1,0 +1,51 @@
+=== Nó: r2n21.npad.internal ===
+Thread(s) per core:  2
+Core(s) per socket:  64
+Socket(s):           2
+NUMA node(s):        8
+Model name:          AMD EPYC 7713 64-Core Processor
+NUMA node0 CPU(s):   0-15,128-143
+NUMA node1 CPU(s):   16-31,144-159
+NUMA node2 CPU(s):   32-47,160-175
+NUMA node3 CPU(s):   48-63,176-191
+NUMA node4 CPU(s):   64-79,192-207
+NUMA node5 CPU(s):   80-95,208-223
+NUMA node6 CPU(s):   96-111,224-239
+NUMA node7 CPU(s):   112-127,240-255
+
+rm -f fluid_scale
+gcc -O3 -march=native -fopenmp -Wall -Wextra -o fluid_scale fluid_scale.c -lm
+>>> Escalabilidade forte: n=4096, 100 passos
+    forte: 1 threads concluído
+    forte: 2 threads concluído
+    forte: 4 threads concluído
+    forte: 8 threads concluído
+    forte: 16 threads concluído
+    forte: 32 threads concluído
+    forte: 64 threads concluído
+    forte: 128 threads concluído
+>>> Escalabilidade fraca: base 2048² células/thread, 50 passos
+    fraca: 1 threads (n=2048) concluído
+    fraca: 2 threads (n=2896) concluído
+    fraca: 4 threads (n=4096) concluído
+    fraca: 8 threads (n=5793) concluído
+    fraca: 16 threads (n=8192) concluído
+    fraca: 32 threads (n=11585) concluído
+    fraca: 64 threads (n=16384) concluído
+    fraca: 128 threads (n=23170) concluído
+
+>>> Validação (as 5 versões devem coincidir bit a bit)
+Validação — grade 1024×1024, 200 passos, 128 threads
+r = ν·Δt/Δx² = 0.0100 (limite de estabilidade: 0.25)
+
+versão                     checksum Σu          pico  
+v0-sequencial         1.570796326795e+03      8.630114  (referência)
+v1-memcpy             1.570796326795e+03      8.630114  ✓ idêntico
+v2-doublebuf          1.570796326795e+03      8.630114  ✓ idêntico
+v3-firsttouch         1.570796326795e+03      8.630114  ✓ idêntico
+v4-regiao-unica       1.570796326795e+03      8.630114  ✓ idêntico
+
+massa Σu analítica (2πσ₀²A): 1.570796e+03
+massa Σu medida:             1.570796e+03   (deve se conservar)
+
+=== Concluído ===

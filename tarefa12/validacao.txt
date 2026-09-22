@@ -1,0 +1,12 @@
+Validação — grade 1024×1024, 200 passos, 128 threads
+r = ν·Δt/Δx² = 0.0100 (limite de estabilidade: 0.25)
+
+versão                     checksum Σu          pico  
+v0-sequencial         1.570796326795e+03      8.630114  (referência)
+v1-memcpy             1.570796326795e+03      8.630114  ✓ idêntico
+v2-doublebuf          1.570796326795e+03      8.630114  ✓ idêntico
+v3-firsttouch         1.570796326795e+03      8.630114  ✓ idêntico
+v4-regiao-unica       1.570796326795e+03      8.630114  ✓ idêntico
+
+massa Σu analítica (2πσ₀²A): 1.570796e+03
+massa Σu medida:             1.570796e+03   (deve se conservar)
