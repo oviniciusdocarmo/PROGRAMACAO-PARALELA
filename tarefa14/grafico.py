@@ -31,4 +31,4 @@ a2.set(xlabel="tamanho da mensagem (bytes)", ylabel="banda efetiva (GB/s)",
 a2.legend(); a2.grid(True, which="both", alpha=.3)
 
 fig.tight_layout()
-fig.savefig("pingpong.png", dpi=120)
+fig.savefig("img/pingpong.png", dpi=120)

@@ -1,3 +1,4 @@
+Nós: r2n03 r2n04 
 bytes,trocas,tempo_total_s,tempo_por_troca_us,banda_MBps
 8,10000,0.025435,2.544,6.3
 16,10000,0.026509,2.651,12.1

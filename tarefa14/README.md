@@ -10,8 +10,9 @@ Implemente um programa MPI com exatamente dois processos. O processo 0 deve envi
 |---|---|
 | `pingpong.c` | Ping-pong MPI (`MPI_Send`/`MPI_Recv`), 8 B até 16 MB, tempo com `MPI_Wtime` |
 | `job.sh` | Job SLURM: 2 nós `amd-512`, 1 processo por nó (a mensagem passa pela rede) |
-| `resultados.csv` | Medições (job 2117166, nós `r2n03` e `r2n04`) |
-| `grafico.py` | Gera `pingpong.png` e ajusta o modelo `t(n) = L + n/B` |
+| `resultados.csv` | Medições (job 2117758, nós `r2n03` e `r2n04`) |
+| `grafico.py` | Gera `img/pingpong.png` e ajusta o modelo `t(n) = L + n/B` |
+| `gera_relatorio.py` | Gera o relatório `Tarefa14_Ping_Pong_MPI.pdf` |
 
 ```bash
 sbatch job.sh          # no NPAD
@@ -22,21 +23,21 @@ Cada tamanho faz 10 trocas de aquecimento e depois 10 000 trocas (até 64 KB) ou
 
 ## Resultado
 
-![pingpong](pingpong.png)
+![pingpong](img/pingpong.png)
 
 | Tamanho | Tempo de ida | Banda efetiva |
 |---|---|---|
-| 8 B | 1,14 µs | 0,007 GB/s |
-| 1 KB | 1,98 µs | 0,52 GB/s |
-| 16 KB | 4,91 µs | 3,3 GB/s |
-| 64 KB | 9,43 µs | 7,0 GB/s |
-| 1 MB | 90,4 µs | 11,6 GB/s |
-| 16 MB | 1366 µs | 12,3 GB/s |
+| 8 B | 1,27 µs | 0,006 GB/s |
+| 1 KB | 1,99 µs | 0,52 GB/s |
+| 16 KB | 4,90 µs | 3,3 GB/s |
+| 64 KB | 9,41 µs | 7,0 GB/s |
+| 1 MB | 90,3 µs | 11,6 GB/s |
+| 16 MB | 1364 µs | 12,3 GB/s |
 
 Modelo `t(n) = L + n/B`:
-- **Latência L ≈ 1,1 µs**: o tempo praticamente não muda de 8 B a ~512 B.
+- **Latência L ≈ 1,3 µs**: o tempo praticamente não muda de 8 B a ~512 B.
 - **Banda B ≈ 12,3 GB/s**: a banda efetiva se estabiliza nesse valor a partir de ~2 MB (compatível com um enlace InfiniBand de 100 Gb/s).
-- **Ponto de corte n\* = L·B ≈ 14 KB**: nesse tamanho a latência e o tempo de transferência pesam igual.
+- **Ponto de corte n\* = L·B ≈ 15 KB**: nesse tamanho a latência e o tempo de transferência pesam igual.
 
 ## Análise
 

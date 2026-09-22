@@ -22,7 +22,8 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if (size != 2) {
         if (rank == 0) fprintf(stderr, "Use exatamente 2 processos.\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
+        MPI_Finalize();
+        return 1;
     }
 
     const int max = 16 << 20;                     /* 8 B até 16 MB */
@@ -33,7 +34,6 @@ int main(int argc, char **argv) {
         int trocas = n <= 65536 ? 10000 : 200;
 
         for (int i = 0; i < 10; i++) troca(buf, n, rank);   /* aquecimento */
-        MPI_Barrier(MPI_COMM_WORLD);
 
         double t0 = MPI_Wtime();
         for (int i = 0; i < trocas; i++) troca(buf, n, rank);
