@@ -1,0 +1,134 @@
+Nó: r2n09.npad.internal  CPUs visíveis: 1
+Thread(s) per core:  2
+Core(s) per socket:  64
+Socket(s):           2
+NUMA node(s):        8
+Model name:          AMD EPYC 7713 64-Core Processor
+NUMA node0 CPU(s):   0-15,128-143
+NUMA node1 CPU(s):   16-31,144-159
+NUMA node2 CPU(s):   32-47,160-175
+NUMA node3 CPU(s):   48-63,176-191
+NUMA node4 CPU(s):   64-79,192-207
+NUMA node5 CPU(s):   80-95,208-223
+NUMA node6 CPU(s):   96-111,224-239
+NUMA node7 CPU(s):   112-127,240-255
+false,1,1.166685
+false,2,0.830218
+false,4,0.346505
+false,8,0.121845
+false,16,0.068302
+false,32,0.037265
+false,64,0.035847
+false,128,0.042370
+true,1,1.163683
+true,2,0.925607
+true,4,0.945615
+true,8,1.043276
+true,16,0.809806
+true,32,0.291942
+true,64,0.053162
+true,128,0.029717
+master,1,1.163103
+master,2,1.078362
+master,4,1.321041
+master,8,2.159179
+master,16,2.877933
+master,32,6.144924
+master,64,12.781917
+master,128,26.221919
+close,1,1.181827
+close,2,0.925573
+close,4,0.942025
+close,8,1.015724
+close,16,0.810548
+close,32,0.295872
+close,64,0.053092
+close,128,0.029326
+spread,1,1.160053
+spread,2,0.620657
+spread,4,0.311272
+spread,8,0.122117
+spread,16,0.059926
+spread,32,0.034687
+spread,64,0.025280
+spread,128,0.018158
+false,1,1.177558
+false,2,0.823166
+false,4,0.342388
+false,8,0.125631
+false,16,0.060636
+false,32,0.037401
+false,64,0.036724
+false,128,0.036887
+true,1,1.171246
+true,2,0.927594
+true,4,0.944667
+true,8,1.012738
+true,16,0.807461
+true,32,0.289203
+true,64,0.053207
+true,128,0.029891
+master,1,1.169916
+master,2,1.073934
+master,4,1.325570
+master,8,2.170789
+master,16,2.872276
+master,32,6.142922
+master,64,13.020923
+master,128,25.983930
+close,1,1.170243
+close,2,0.928233
+close,4,0.943173
+close,8,1.012204
+close,16,0.817701
+close,32,0.291636
+close,64,0.051789
+close,128,0.029360
+spread,1,1.164873
+spread,2,0.603147
+spread,4,0.275166
+spread,8,0.122444
+spread,16,0.060023
+spread,32,0.034417
+spread,64,0.025936
+spread,128,0.019744
+false,1,1.163380
+false,2,0.824161
+false,4,0.344931
+false,8,0.124072
+false,16,0.067098
+false,32,0.036217
+false,64,0.029807
+false,128,0.040076
+true,1,1.158060
+true,2,0.926850
+true,4,0.941045
+true,8,1.020856
+true,16,0.813271
+true,32,0.292215
+true,64,0.052559
+true,128,0.029703
+master,1,1.171515
+master,2,1.078961
+master,4,1.330807
+master,8,2.204912
+master,16,2.878924
+master,32,6.198924
+master,64,12.651922
+master,128,26.187924
+close,1,1.171823
+close,2,0.932570
+close,4,0.945312
+close,8,1.013735
+close,16,0.810578
+close,32,0.290763
+close,64,0.052978
+close,128,0.029812
+spread,1,1.174363
+spread,2,0.573651
+spread,4,0.274595
+spread,8,0.119261
+spread,16,0.060390
+spread,32,0.035276
+spread,64,0.026024
+spread,128,0.019187
